@@ -1,0 +1,13 @@
+numpy
+pandas
+scipy
+scikit-learn
+networkx
+GraphRicciCurvature
+POT
+matplotlib
+python-dotenv
+requests
+beautifulsoup4
+lxml
+pytest
