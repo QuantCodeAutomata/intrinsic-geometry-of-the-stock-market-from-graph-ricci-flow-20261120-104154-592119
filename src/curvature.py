@@ -1,6 +1,6 @@
 """Ollivier-Ricci curvature with the paper's weight-proportional measure.
 
-The GraphRicciCurvature library (Ni et al.; Context7 /saibalmars/graphriccicurvature)
+The GraphRicciCurvature library (Ni et al., https://github.com/saibalmars/GraphRicciCurvature)
 implements Ollivier-Ricci curvature with an *exponential*, distance-decaying
 neighbourhood measure (``m_i(j) ~ base^{-d(i,j)^{exp_power}}``). The paper
 (Appendix A) instead defines a *weight-proportional* measure for the weighted
