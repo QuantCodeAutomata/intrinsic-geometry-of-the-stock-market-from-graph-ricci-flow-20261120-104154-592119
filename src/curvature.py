@@ -2,18 +2,34 @@
 
 The GraphRicciCurvature library (Ni et al.; Context7 /saibalmars/graphriccicurvature)
 implements Ollivier-Ricci curvature with an *exponential*, distance-decaying
-neighbourhood measure (``m_i(j) ~ base^{-d(i,j)^{exp_power}}``). The paper's
-measure (implementation_notes) is instead *weight-proportional*:
+neighbourhood measure (``m_i(j) ~ base^{-d(i,j)^{exp_power}}``). The paper
+(Appendix A) instead defines a *weight-proportional* measure for the weighted
+complete graph:
 
-    m_i(i) = alpha,   m_i(j) = (1 - alpha) * w_ij / sum_k w_ik   for j != i,
+    m_i(i) = alpha,   m_i(j) = (1 - alpha) * w_ij / sum_k w_ik   for j != i.
 
-i.e. mass grows with edge weight rather than shrinking with distance. Because
-this measure differs from the library's built-in family, the measure and the
-curvature formula are implemented here from the paper's definition (Appendix B),
-while the optimal-transport subproblem itself -- computing the 1-Wasserstein
-(earth mover's) distance between two neighbourhood measures -- is solved with
-the POT (Python Optimal Transport) library's network-simplex solver
-``ot.emd2``, rather than re-implementing a transportation-problem solver.
+Appendix A states this measure makes "the probability of hopping from i to j
+... proportional to the correlation strength between stocks i and j". Since
+the graph weight is the correlation *distance* w_ij = sqrt(2(1-C_ij)), which
+*decreases* as correlation strength increases, a mass proportional to w_ij
+itself would instead put more mass on the *least* correlated neighbours. That
+reading also contradicts the paper's own definition of ORC-sphericity and its
+account of community structure (main text, Sec. on curvature): nodes sharing
+a community "tend to share neighbours ... intra-community edges have positive
+ORC", which requires the random-walk mass to concentrate on similar (close,
+small-w) neighbours, not dissimilar (distant, large-w) ones. This is verified
+below with a synthetic block-correlation graph of known community labels:
+mass taken literally proportional to w_ij gives intra-community curvature
+*below* inter-community curvature, the reverse of the sign the paper requires
+for every intra-/inter-community pair tested -- so this implementation uses
+the measure that is proportional to correlation *strength*, i.e. inversely
+proportional to the distance weight,
+
+    m_i(j) = (1 - alpha) * (1 / w_ij) / sum_k (1 / w_ik),
+
+which reproduces the correct sign (higher curvature for more correlated,
+smaller-distance pairs) on that synthetic check and is noted as a deviation
+from a literal reading of the Appendix A formula in results/RESULTS.md.
 
 On the complete graphs used throughout (NASDAQ-100 and Mantegna benchmark),
 the shortest path between any two nodes is the direct edge, since the
@@ -30,10 +46,12 @@ import ot
 
 
 def neighborhood_measures(G: nx.Graph, alpha: float) -> tuple[list, np.ndarray, np.ndarray]:
-    """Weight-proportional measures m_i for every node (paper Appendix B).
+    """Inverse-weight (correlation-strength-proportional) measures m_i (paper Appendix A).
 
     Returns (nodes, weight_matrix, M) where M[i] is the probability vector
-    m_i over `nodes`, with m_i[i] = alpha and m_i[j] = (1-alpha) * w_ij / sum_k w_ik.
+    m_i over `nodes`, with m_i[i] = alpha and
+    m_i[j] = (1-alpha) * (1/w_ij) / sum_k (1/w_ik), so mass concentrates on
+    the most correlated (smallest-distance) neighbours -- see module docstring.
     """
     nodes = list(G.nodes())
     idx = {n: k for k, n in enumerate(nodes)}
@@ -43,9 +61,11 @@ def neighborhood_measures(G: nx.Graph, alpha: float) -> tuple[list, np.ndarray, 
         i, j = idx[u], idx[v]
         W[i, j] = W[j, i] = d["weight"]
 
-    row_sums = W.sum(axis=1, keepdims=True)
+    with np.errstate(divide="ignore"):
+        inv_W = np.where(W > 0, 1.0 / W, 0.0)
+    row_sums = inv_W.sum(axis=1, keepdims=True)
     row_sums[row_sums == 0] = 1.0  # isolated node guard; should not occur on complete graphs
-    M = (1.0 - alpha) * W / row_sums
+    M = (1.0 - alpha) * inv_W / row_sums
     np.fill_diagonal(M, alpha)
     assert np.allclose(M.sum(axis=1), 1.0, atol=1e-8), "neighbourhood measures must sum to 1"
     return nodes, W, M

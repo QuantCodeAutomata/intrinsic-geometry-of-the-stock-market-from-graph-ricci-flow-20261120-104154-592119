@@ -204,26 +204,61 @@ def load_ohlcv(
     return bars, meta
 
 
-def fetch_nasdaq100_tickers() -> list[str]:
-    """Current NASDAQ-100 index constituents from Wikipedia (paper Sec. 2, data_requirements).
+def _nasdaq100_oldid(as_of_date: str) -> int:
+    """Revision id of the Wikipedia "Nasdaq-100" article at or before ``as_of_date``.
 
-    Reads the "Ticker" column of the constituent table on the Wikipedia page
-    "List of NASDAQ-100 companies". The paper points to the Wikipedia NASDAQ-100
-    page as the source of index components; tickers are returned in table order.
-    A stock whose symbol has been reused for a different company since would be
-    mishandled by Dataloader's default identity resolution -- callers must pass
-    ``identity_date`` set to the paper's sample end date when fetching bars.
+    NASDAQ-100 membership changes over time (reconstitutions, additions on
+    index inclusion), so the constituent table must be read point-in-time at
+    the paper's sample end date rather than from today's live page.
     """
-    from bs4 import BeautifulSoup
-
     response = requests.get(
         "https://en.wikipedia.org/w/api.php",
         params={
-            "action": "parse",
-            "page": "List of NASDAQ-100 companies",
-            "prop": "text",
+            "action": "query",
+            "prop": "revisions",
+            "titles": "Nasdaq-100",
+            "rvlimit": 1,
+            "rvdir": "older",
+            "rvstart": f"{as_of_date}T23:59:59Z",
+            "rvprop": "ids|timestamp",
             "format": "json",
         },
+        headers={"User-Agent": "arcus-replication-research/1.0"},
+        timeout=30,
+    )
+    response.raise_for_status()
+    pages = response.json()["query"]["pages"]
+    page = next(iter(pages.values()))
+    if "revisions" not in page:
+        raise DataloaderError(f"No Wikipedia revision found at or before {as_of_date}")
+    return page["revisions"][0]["revid"]
+
+
+def fetch_nasdaq100_tickers(as_of_date: str | None = None) -> list[str]:
+    """NASDAQ-100 index constituents from Wikipedia (paper Sec. 2, data_requirements).
+
+    Reads the "Ticker"/"Symbol" column of the constituent table on the
+    Wikipedia page "Nasdaq-100" (constituents are listed on that page, which
+    redirects from "List of NASDAQ-100 companies"). When ``as_of_date`` is
+    given, the table is read from the article revision in effect on that date
+    rather than today's live page, so the universe reflects the index
+    membership the paper's sample window actually traded against. A stock
+    whose symbol has been reused for a different company since would be
+    mishandled by Dataloader's default identity resolution -- callers must
+    also pass ``identity_date`` set to the paper's sample end date when
+    fetching bars.
+    """
+    from bs4 import BeautifulSoup
+
+    params = {"action": "parse", "prop": "text", "format": "json"}
+    if as_of_date:
+        params["oldid"] = _nasdaq100_oldid(as_of_date)
+    else:
+        params["page"] = "List of NASDAQ-100 companies"
+
+    response = requests.get(
+        "https://en.wikipedia.org/w/api.php",
+        params=params,
         headers={"User-Agent": "arcus-replication-research/1.0"},
         timeout=30,
     )
@@ -233,14 +268,25 @@ def fetch_nasdaq100_tickers() -> list[str]:
         raise DataloaderError(f"Wikipedia API error: {payload['error']}")
     html = payload["parse"]["text"]["*"]
     soup = BeautifulSoup(html, "lxml")
-    table = soup.find("table", class_="wikitable")
+    tables = soup.find_all("table", class_="wikitable")
+    if not tables:
+        raise DataloaderError("No wikitable found on the Nasdaq-100 Wikipedia page")
+
+    ticker_col = None
+    table = None
+    for candidate in tables:
+        rows = candidate.find_all("tr")
+        header = [th.get_text(strip=True) for th in rows[0].find_all(["th", "td"])]
+        for i, h in enumerate(header):
+            if h.lower().startswith("ticker") or h.lower().startswith("symbol"):
+                ticker_col, table = i, candidate
+                break
+        if table is not None:
+            break
     if table is None:
-        raise DataloaderError("No wikitable found on 'List of NASDAQ-100 companies'")
+        raise DataloaderError("No constituent table with a Ticker/Symbol column found")
 
     rows = table.find_all("tr")
-    header = [th.get_text(strip=True) for th in rows[0].find_all(["th", "td"])]
-    ticker_col = next(i for i, h in enumerate(header) if h.lower().startswith("ticker"))
-
     tickers = []
     for row in rows[1:]:
         cells = row.find_all(["td", "th"])

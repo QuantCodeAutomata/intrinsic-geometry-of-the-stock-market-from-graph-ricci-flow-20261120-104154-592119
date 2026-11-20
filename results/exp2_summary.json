@@ -1,0 +1,96 @@
+{
+  "data_source": "massive",
+  "sample_period": [
+    "2003-09-11",
+    "2005-06-01"
+  ],
+  "n_trading_days": 434,
+  "initial_orc_spherical": true,
+  "min_initial_kappa": 0.5089866513918426,
+  "min_initial_kappa_paper": 0.45,
+  "level1": {
+    "iterations": 20,
+    "G": 104.98177081954165,
+    "G_paper": 128.9,
+    "components": [
+      [
+        "AIG",
+        "BAC"
+      ],
+      [
+        "IBM",
+        "RD"
+      ],
+      [
+        "AXP",
+        "MER"
+      ],
+      [
+        "MOT",
+        "TXN"
+      ],
+      [
+        "OXY",
+        "SLB"
+      ]
+    ]
+  },
+  "level2": {
+    "iterations": 10,
+    "G": 8.477273867814475,
+    "G_paper": 25.9,
+    "components": [
+      [
+        "AXP",
+        "MER"
+      ],
+      [
+        "IBM"
+      ],
+      [
+        "MOT",
+        "TXN"
+      ],
+      [
+        "OXY",
+        "SLB"
+      ],
+      [
+        "RD"
+      ]
+    ]
+  },
+  "ARI": 0.3553008595988539,
+  "NMI": 0.7413654937510311,
+  "Q": -0.10536487379227548,
+  "ARI_paper": 1.0,
+  "NMI_paper": 1.0,
+  "Q_paper": 0.018,
+  "predicted_labels": {
+    "AIG": "energy_cluster",
+    "BAC": "energy_cluster",
+    "AXP": "level2_cluster_0",
+    "MER": "level2_cluster_0",
+    "IBM": "level2_cluster_1",
+    "MOT": "level2_cluster_2",
+    "TXN": "level2_cluster_2",
+    "SLB": "level2_cluster_3",
+    "OXY": "level2_cluster_3",
+    "RD": "level2_cluster_4"
+  },
+  "ground_truth": {
+    "AIG": "financial",
+    "IBM": "financial",
+    "BAC": "financial",
+    "AXP": "financial",
+    "MER": "financial",
+    "TXN": "technology",
+    "MOT": "technology",
+    "SLB": "energy",
+    "OXY": "energy",
+    "RD": "energy"
+  },
+  "mst_ARI": 1.0,
+  "pca_v2_ARI": 0.5664739884393064,
+  "pca_v2v3_ARI": 0.55
+}

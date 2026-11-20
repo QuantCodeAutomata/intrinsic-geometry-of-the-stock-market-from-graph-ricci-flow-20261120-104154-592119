@@ -1,0 +1,5 @@
+method,k,ARI,NMI,note
+"Ricci flow (ARCUS, Levels 1+2)",3,0.3553008595988539,0.7413654937510311,"G=105.0, 8.5; no parameters"
+MST average-linkage,3,1.0,1.0000000000000002,Requires specifying k=3
+PCA v2 sign,2,0.5664739884393064,,lambda2=1.575
+PCA v2+v3 sign,3,0.55,,lambda3=0.957

@@ -22,6 +22,7 @@ NASDAQ100_END_DATE = "2024-11-20"  # Sample end (paper_pipeline data_requirement
 NASDAQ100_UNIVERSE_SIZE_PAPER = 101  # Full NASDAQ-100 index constituents used in the paper (Sec. 2)
 NASDAQ100_UNIVERSE_SIZE_RUN = 101  # Executed universe size; equal to the paper's, no narrowing needed
 NASDAQ100_IDENTITY_DATE = "2024-11-20"  # Point-in-time index-membership date (= sample end; paper gives no other date)
+MAX_LISTING_LAG_DAYS = 60  # Max days a constituent's trading history may start after NASDAQ100_START_DATE before exclusion (not specified in the paper; avoids one short-history name collapsing the common sample window used for log_returns)
 
 # --- Experiment 2: Mantegna (1999) / Tumminello et al. (2008) ten-stock benchmark --
 MANTEGNA_TICKERS = ["AIG", "IBM", "BAC", "AXP", "MER", "TXN", "MOT", "SLB", "OXY", "RD"]
@@ -44,6 +45,6 @@ MANTEGNA_MIN_KAPPA_PAPER = 0.450  # Expected minimum initial ORC (Appendix F.1)
 # market-data coverage before September 2003 in the data sources used here; the window
 # below is the latest span for which all ten legacy tickers trade simultaneously with
 # full coverage from a single data source (Massive, no Yahoo backstop needed).
-MANTEGNA_START_DATE = "2003-09-10"
-MANTEGNA_END_DATE = "2004-12-31"
+MANTEGNA_START_DATE = "2003-09-10"  # earliest date with data for MER/MOT/RD simultaneously (checked via load probes)
+MANTEGNA_END_DATE = "2005-06-01"  # Royal Dutch (RD) traded under this ticker until its mid-2005 unification into Shell
 MANTEGNA_IDENTITY_DATE = "2004-06-01"  # Mid-sample identity date for legacy/renamed tickers

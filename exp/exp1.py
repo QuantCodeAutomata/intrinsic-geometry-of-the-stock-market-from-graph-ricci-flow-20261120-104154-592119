@@ -46,7 +46,7 @@ def flatten_tree(node, rows: list) -> None:
 
 def run(use_cache: bool = True) -> dict:
     print("Fetching NASDAQ-100 constituents from Wikipedia (paper Sec. 2, data_requirements)")
-    tickers = fetch_nasdaq100_tickers()
+    tickers = fetch_nasdaq100_tickers(as_of_date=config.NASDAQ100_IDENTITY_DATE)
     print(f"Universe size: {len(tickers)} (paper: {config.NASDAQ100_UNIVERSE_SIZE_PAPER})")
 
     # Market data: QuantX Dataloader — https://quantx.limex.pro/
@@ -75,6 +75,25 @@ def run(use_cache: bool = True) -> dict:
         print(f"Failed to load (excluded): {meta['failed']}")
     if meta["non_massive_source"]:
         print(f"Non-Massive data sources: {meta['non_massive_source']}")
+
+    # log_returns aligns on the trading days common to every ticker (pairwise-
+    # complete sampling implicit in a single correlation matrix, paper Sec. 2).
+    # A constituent whose own trading history starts well after the sample
+    # start (a post-2020 IPO or spin-off still in the index on the as-of date)
+    # would otherwise collapse that common window to its own short history.
+    # Such names are excluded here, with the reason logged, rather than
+    # silently shrinking the sample period for every other stock.
+    first_trade = bars.groupby("ticker")["date"].min()
+    sample_start = pd.Timestamp(config.NASDAQ100_START_DATE)
+    short_history = sorted(
+        t for t in loaded_tickers
+        if (first_trade[t] - sample_start).days > config.MAX_LISTING_LAG_DAYS
+    )
+    if short_history:
+        print(f"Excluded (listed after sample start, insufficient history): "
+              f"{ {t: str(first_trade[t].date()) for t in short_history} }")
+    loaded_tickers = [t for t in loaded_tickers if t not in short_history]
+    bars = bars[bars["ticker"].isin(loaded_tickers)]
 
     returns = log_returns(bars)
     returns = returns[loaded_tickers]

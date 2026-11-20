@@ -1,0 +1,31 @@
+{
+  "universe_size_loaded": 94,
+  "universe_size_paper": 101,
+  "sample_period": [
+    "2020-01-03",
+    "2024-11-20"
+  ],
+  "n_trading_days": 1230,
+  "mean_edge_weight": 1.092132920056348,
+  "mean_edge_weight_paper": 1.11,
+  "root_orc_spherical": true,
+  "min_initial_kappa": 0.4473190157571041,
+  "n_leaves": 1,
+  "n_internal_nodes": 0,
+  "level1_G": 239.4707582794026,
+  "level1_G_paper": 25.03,
+  "level1_split_sizes": [],
+  "level1_split_sizes_paper": [
+    35,
+    66
+  ],
+  "non_massive_source": {
+    "TEAM": "yahoo",
+    "BIIB": "yahoo",
+    "CEG": "yahoo",
+    "GEHC": "yahoo",
+    "MRVL": "yahoo",
+    "SMCI": "yahoo"
+  },
+  "failed_tickers": {}
+}
